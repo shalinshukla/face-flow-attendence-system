@@ -105,7 +105,7 @@ def _recognize_face(unknown_encoding, loaded_encodings):
     encoding with the most matches.
     """
     boolean_matches = face_recognition.compare_faces(
-        loaded_encodings["encodings"], unknown_encoding
+        loaded_encodings["encodings"], unknown_encoding, tolerance=0.5
     )
     votes = Counter(
         name
