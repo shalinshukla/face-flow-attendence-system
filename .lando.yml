@@ -1,0 +1,4 @@
+name: faceflow-system
+recipe: lemp
+config:
+  webroot: .

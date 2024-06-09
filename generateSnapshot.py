@@ -1,33 +1,41 @@
 import os
 import time
 import cv2
-from detector import recognize_faces  # Import the recognize_faces function from detector.py
+from detector import recognize_faces
 
 # Create a directory if it doesn't exist
 directory = "class-snapshot"
 if not os.path.exists(directory):
     os.makedirs(directory)
 
-# Initialize the webcam
-webcam = cv2.VideoCapture(0)
+try:
 
-# Wait for 10 seconds
-time.sleep(10)
+    # Initialize the webcam
+    webcam = cv2.VideoCapture(0)  # Assuming the first webcam is used
 
-# Get the current timestamp
-timestamp = int(time.time())
+    # Wait for 10 seconds
+    time.sleep(10)
 
-# Capture a frame
-ret, frame = webcam.read()
+    # Get the current timestamp
+    timestamp = int(time.time())
 
-# Save the captured image with the new filename
-if ret:
-    filename = f"{directory}/class-snapshot-{timestamp}.jpg"
-    cv2.imwrite(filename=filename, img=frame)
-    webcam.release()
+    # Capture a frame
+    ret, frame = webcam.read()
 
-    print(f"Original image saved as {filename}")
-    # Call the recognize_faces function from detector.py with the image path
-    recognize_faces(filename, "hog");
-else:
-    print("Failed to capture frame from the webcam.")
+    # Save the captured image with the new filename
+    if ret:
+        filename = f"{directory}/class-snapshot-{timestamp}.jpg"
+        print(filename);
+
+        cv2.imwrite(filename=filename, img=frame)
+        webcam.release()
+
+        print(f"Original image saved as {filename}")
+        # Call the recognize_faces function from detector.py with the image path
+        names = recognize_faces(filename, "hog")
+    else:
+        print("Failed to capture frame from the webcam.")
+
+except Exception as e:
+    print("An error occurred:", e)
+    webcam.release()  # Release the webcam resource in case of error

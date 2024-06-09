@@ -1,5 +1,7 @@
 import argparse
 import pickle
+from typing import List, Any
+
 import face_recognition
 from collections import Counter
 from pathlib import Path
@@ -38,27 +40,39 @@ args = parser.parse_args()
 
 
 def encode_known_faces(
-    model: str = "hog", encodings_location: Path = DEFAULT_ENCODINGS_PATH
+        model: str = "hog", encodings_location: Path = DEFAULT_ENCODINGS_PATH
 ) -> None:
     """
-    Loads images in the training directory and builds a dictionary of their
-    names and encodings.
+    This function takes care of encoding known faces from images in a training directory.
+    It uses the face_recognition library to detect and encode faces in images.
+    Parameters:
+    - model (str): The face detection model to use, default is "hog".
+    - encodings_location (Path): The location where the face encodings will be saved.
+    Returns:
+    - None
     """
+    # Lists to store names and corresponding face encodings
     names = []
     encodings = []
-
+    # Iterate through all image files in the "training" directory
     for filepath in Path("training").glob("*/*"):
+        # Extract the person's name from the directory structure
         name = filepath.parent.name
+
+        # Load the image using the face_recognition library
         image = face_recognition.load_image_file(filepath)
 
+        # Detect face locations and calculate face encodings
         face_locations = face_recognition.face_locations(image, model=model)
         face_encodings = face_recognition.face_encodings(image, face_locations)
 
+        # Store the person's name and their face encodings
         for encoding in face_encodings:
             names.append(name)
             encodings.append(encoding)
-
+    # Create a dictionary with names and corresponding face encodings
     name_encodings = {"names": names, "encodings": encodings}
+    # Save the dictionary to a binary file using the pickle module
     with encodings_location.open(mode="wb") as f:
         pickle.dump(name_encodings, f)
 
@@ -67,11 +81,12 @@ def recognize_faces(
     image_location: str,
     model: str = "hog",
     encodings_location: Path = DEFAULT_ENCODINGS_PATH,
-) -> None:
+) -> list[Any]:
     """
     Given an unknown image, get the locations and encodings of any faces and
     compares them against the known encodings to find potential matches.
     """
+    names = []
     with encodings_location.open(mode="rb") as f:
         loaded_encodings = pickle.load(f)
 
@@ -91,27 +106,45 @@ def recognize_faces(
         input_face_locations, input_face_encodings
     ):
         name = _recognize_face(unknown_encoding, loaded_encodings)
+        names.append(name)
         if not name:
             name = "Unknown"
         _display_face(draw, bounding_box, name)
 
     del draw
     pillow_image.show()
+    return names
+
+
+
 
 
 def _recognize_face(unknown_encoding, loaded_encodings):
     """
-    Given an unknown encoding and all known encodings, find the known
-    encoding with the most matches.
+    Given an unknown face encoding and a list of known face encodings,
+    this function finds the known face encoding with the most matches.
+
+    Parameters:
+    - unknown_encoding: The encoding of the unknown face to be recognized.
+    - loaded_encodings: A dictionary containing two lists - 'names' and 'encodings',
+      representing the names of known faces and their corresponding encodings.
+
+    Returns:
+    - The name of the recognized face.
     """
+
+    # Compare the unknown face encoding with all known face encodings
     boolean_matches = face_recognition.compare_faces(
         loaded_encodings["encodings"], unknown_encoding, tolerance=0.5
     )
+    # Count the votes for each known face based on matches
     votes = Counter(
         name
         for match, name in zip(boolean_matches, loaded_encodings["names"])
         if match
     )
+
+    # If there are votes, return the name of the recognized face with the most votes
     if votes:
         return votes.most_common(1)[0][0]
 
